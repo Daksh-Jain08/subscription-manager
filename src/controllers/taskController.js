@@ -95,9 +95,78 @@ const createTask = async (req, res) => {
 // @route GET /api/tasks/admin
 // @access Admin
 const getAllTasksAdmin = async (req, res) => {
+  const {
+    priority,
+    completed,
+    page = "1",
+    limit = "10",
+    deadlineFrom,
+    deadlineTo,
+    sortBy,
+  } = req.query;
+
+  const taskPage = parseInt(page, 10);
+  const taskLimit = parseInt(limit, 10);
+
+  // Validate pagination parameters
+  if (isNaN(taskPage) || isNaN(taskLimit) || taskPage < 1 || taskLimit < 1) {
+    return res.status(400).json({ message: "Invalid pagination parameters" });
+  }
+  if (taskLimit > 50) {
+    return res.status(400).json({ message: "Limit must be less than or equal to 50" });
+  }
+
+  // Build the query object without a user filter for admin
+  const query = { isDeleted: false };
+  if (priority) {
+    query.priority = priority;
+  }
+  if (typeof completed !== "undefined") {
+    // Convert completed string into a boolean
+    query.completed = completed === "true";
+  }
+  if (deadlineFrom || deadlineTo) {
+    query.deadline = {};
+    try {
+      if (deadlineFrom) {
+        // Convert deadlineFrom to UTC using validateDatetime helper
+        query.deadline.$gte = validateDatetime(deadlineFrom);
+      }
+      if (deadlineTo) {
+        // Convert deadlineTo to UTC using validateDatetime helper
+        query.deadline.$lte = validateDatetime(deadlineTo);
+      }
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  // Set up sorting: allow only specific fields, default to descending order by createdAt
+  const allowedSortFields = ["createdAt", "priority", "deadline"];
+  let sortField;
+  if (allowedSortFields.includes(sortBy)) {
+    sortField = sortBy;
+  } else {
+    sortField = "-createdAt";
+  }
+
   try {
-    const tasks = await Task.find({});
-    return res.status(200).json({ tasks });
+    const tasks = await Task.find(query)
+      .sort(sortField)
+      .skip((taskPage - 1) * taskLimit)
+      .limit(taskLimit);
+    const count = await Task.countDocuments(query);
+
+    // If page offset exceeds count, respond with an error
+    if ((taskPage - 1) * taskLimit >= count) {
+      return res.status(400).json({ message: "The page does not exist" });
+    }
+    return res.status(200).json({
+      tasks,
+      totalPages: Math.ceil(count / taskLimit),
+      currentPage: taskPage,
+      totalTasks: count,
+    });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
@@ -238,31 +307,43 @@ const updateTask = async (req, res) => {
   const id = req.params.id;
   const user = req.user;
   const { title, description, deadline, reminderTime, priority, completed } = req.body;
+  
   try {
     const task = await Task.findOne({ _id: id, isDeleted: false });
-    // task with the given id not found.
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
-    // task does not belong to the user.
-    if (task.user.toString() !== user._id.toString()) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to update this task" });
+    // Allow admin to update any task; regular users can only update their own
+    if (task.user.toString() !== user._id.toString() && user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to update this task" });
     }
-    // validate the deadline
-    const taskDeadline = deadline ? validateDatetime(deadline) : task.deadline;
-    // validate the reminder time
-    const taskReminderTime = reminderTime ? validateDatetime(reminderTime) : null;
-    // update the task
+
+    const updateFields = {};
+    if (title) updateFields.title = title;
+    if (description) updateFields.description = description;
+    if (deadline) {
+      // Validate and convert deadline to UTC
+      updateFields.deadline = validateDatetime(deadline);
+    }
+    if (typeof reminderTime !== "undefined") {
+      try {
+        updateFields.reminderTime = validateDatetime(reminderTime);
+      } catch (error) {
+        // If validation fails (e.g. reminder is in the past), set reminderTime to null
+        updateFields.reminderTime = null;
+      }
+    }
+    if (priority) updateFields.priority = priority;
+    if (typeof completed !== "undefined") updateFields.completed = completed;
+
     const updatedTask = await Task.findByIdAndUpdate(
       id,
-      { title, description, deadline: taskDeadline, reminderTime: taskReminderTime, priority, completed },
+      { $set: updateFields },
       { new: true }
     );
     return res.status(200).json({ message: "Task updated", updatedTask });
   } catch (err) {
-    return res.status(500).json({ message: err.massage });
+    return res.status(500).json({ message: err.message });
   }
 };
 
