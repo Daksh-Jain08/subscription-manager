@@ -1,43 +1,5 @@
 const Task = require("../models/Task");
-const { DateTime } = require("luxon");
-
-/* Function to validate the datetime format
- The function will return a JavaScript Date object
- If the input is a valid datetime string
- Otherwise, it will throw an error
-*/
-const validateDatetime = (datetime) => {
-  if (!datetime) {
-    throw new Error("Datetime is required.");
-  }
-
-  // Try parsing the datetime without forcing the zone
-  let dt = DateTime.fromISO(datetime);
-
-  // If only date is provided, set default time to 23:59:59
-  if (!dt.isValid) {
-    dt = DateTime.fromFormat(datetime, "yyyy-MM-dd");
-    if (dt.isValid) {
-      dt = dt.set({ hour: 23, minute: 59, second: 59 });
-    }
-  }
-
-  if (!dt.isValid) {
-    throw new Error(
-      "Invalid datetime format. Use YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss"
-    );
-  }
-
-  // Convert to UTC explicitly
-  dt = dt.toUTC();
-
-  const jsDate = dt.toJSDate();
-  if (jsDate < new Date()) {
-    throw new Error("Deadline should be in the future");
-  }
-
-  return jsDate; // Return a JavaScript Date object in UTC for MongoDB
-};
+const { validateDatetime, transformTaskToIST } = require("../utils/dates");
 
 // @desc Create a new task
 // @route POST /api/tasks
@@ -49,33 +11,23 @@ const createTask = async (req, res) => {
       .status(400)
       .json({ message: "Please enter a title and deadline" });
   }
-
   const user = req.user;
   try {
-    // Convert the deadline to a UTC Date using the validateDatetime helper
     const taskDeadline = validateDatetime(deadline);
-    console.log("Task deadline (UTC):", taskDeadline);
-
     let reminder;
     if (reminderTime) {
-      // Validate the provided reminder time
       try {
         reminder = validateDatetime(reminderTime);
       } catch (error) {
-        // If error occurs (e.g., reminder is in the past), set reminder to null
         reminder = null;
       }
     } else {
-      // If reminderTime not provided, default to 1 day before deadline (in UTC)
       reminder = new Date(taskDeadline);
       reminder.setDate(reminder.getDate() - 1);
     }
-    
-    // If the computed reminder is already past, ignore it
     if (reminder && reminder < new Date()) {
       reminder = null;
     }
-    
     const taskPriority = priority || "medium";
     const task = await Task.create({
       title,
@@ -85,7 +37,9 @@ const createTask = async (req, res) => {
       reminderTime: reminder,
       user: user._id,
     });
-    return res.status(201).json({ task });
+    // Convert the created task to IST before sending it
+    const transformedTask = transformTaskToIST(task);
+    return res.status(201).json({ task: transformedTask });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
@@ -157,12 +111,14 @@ const getAllTasksAdmin = async (req, res) => {
       .limit(taskLimit);
     const count = await Task.countDocuments(query);
 
-    // If page offset exceeds count, respond with an error
+    // Map each task to an object with IST timestamps
+    const transformedTasks = tasks.map(task => transformTaskToIST(task));
+
     if ((taskPage - 1) * taskLimit >= count) {
       return res.status(400).json({ message: "The page does not exist" });
     }
     return res.status(200).json({
-      tasks,
+      tasks: transformedTasks,
       totalPages: Math.ceil(count / taskLimit),
       currentPage: taskPage,
       totalTasks: count,
@@ -239,12 +195,14 @@ const getAllTasks = async (req, res) => {
       .limit(taskLimit);
     const count = await Task.countDocuments(query);
 
-    // If page offset exceeds count, respond with an error
+    // Convert each returned task to IST
+    const transformedTasks = tasks.map(task => transformTaskToIST(task));
+
     if ((taskPage - 1) * taskLimit >= count) {
       return res.status(400).json({ message: "The page does not exist" });
     }
     return res.status(200).json({
-      tasks,
+      tasks: transformedTasks,
       totalPages: Math.ceil(count / taskLimit),
       currentPage: taskPage,
       totalTasks: count,
@@ -270,7 +228,9 @@ const getTaskById = async (req, res) => {
         .status(403)
         .json({ message: "Not authorized to access this task" });
     }
-    return res.status(200).json({ task });
+    // Convert to IST before returning
+    const transformedTask = transformTaskToIST(task);
+    return res.status(200).json({ task: transformedTask });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
@@ -322,14 +282,13 @@ const updateTask = async (req, res) => {
     if (title) updateFields.title = title;
     if (description) updateFields.description = description;
     if (deadline) {
-      // Validate and convert deadline to UTC
+      // Validate and convert deadline to UTC then update
       updateFields.deadline = validateDatetime(deadline);
     }
     if (typeof reminderTime !== "undefined") {
       try {
         updateFields.reminderTime = validateDatetime(reminderTime);
       } catch (error) {
-        // If validation fails (e.g. reminder is in the past), set reminderTime to null
         updateFields.reminderTime = null;
       }
     }
@@ -341,7 +300,12 @@ const updateTask = async (req, res) => {
       { $set: updateFields },
       { new: true }
     );
-    return res.status(200).json({ message: "Task updated", updatedTask });
+    
+    // Transform updated task timestamps to IST before sending to client
+    const transformedTask = transformTaskToIST(updatedTask);
+    return res
+      .status(200)
+      .json({ message: "Task updated", updatedTask: transformedTask });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
