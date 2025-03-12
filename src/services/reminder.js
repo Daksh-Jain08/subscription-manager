@@ -2,8 +2,9 @@ const cron = require('node-cron');
 const sendEmail = require('./email');
 const Task = require('../models/Task');
 
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('* * * * *', async () => {
     const now = new Date();
+    console.log(`Checking for tasks to remind at ${now}`);
     try {
         const tasksToRemind = await Task.find({
             reminderTime: { $lte: now },
