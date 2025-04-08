@@ -29,6 +29,17 @@ const startServer = async () => {
 
 	const authRouter = require("./routes/authRoutes");
 	const taskRouter = require("./routes/taskRoutes");
+	app.use(express.json());
+	app.use(cookieParser());
+	app.use(
+		session({
+			secret: process.env.SESSION_SECRET,
+			resave: false,
+			saveUninitialized: true,
+		}),
+	);
+	app.use(passport.initialize());
+	app.use(passport.session());
 
 	app.use("/api/auth", authRouter);
 	app.use("/api/tasks", taskRouter);
