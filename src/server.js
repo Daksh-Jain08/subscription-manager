@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 
 const express = require("express");
-const envFile = process.env.ENV_MODE === "docker" ? ".env" : ".env.dev";
+const envFile = process.env.ENV_MODE === "docker" ? ".env" : ".env1";
 console.log(envFile);
 dotenv.config({ path: envFile });
 const connectDB = require("./config/db");
