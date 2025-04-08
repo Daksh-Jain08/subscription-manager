@@ -20,7 +20,7 @@ app.use(session({
   saveUninitialized: true
 }));
 app.use(passport.initialize());
-app.use(passport.session());
+//app.use(passport.session());
 
 const authRouter = require("./routes/authRoutes");
 const taskRouter = require("./routes/taskRoutes");
