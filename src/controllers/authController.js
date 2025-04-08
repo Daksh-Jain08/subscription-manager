@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const {sendVerificationEmail, sendPasswordResetEmail} = require("../services/mailer/emailService.js");
 
 const generateToken = (id) => {
 	access_token = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -30,14 +31,42 @@ const registerUser = async (req, res) => {
 		if (usernameUsed) {
 			return res.status(400).json({ message: "Username already used" });
 		}
-		const user = await User.create({ username, email, password });
-		if (user) {
-			return loginUser(req, res);
-		}
+		const payload = { username, email, password }; // optionally hash the password here already
+		const token = jwt.sign(payload, process.env.EMAIL_TOKEN_SECRET, {
+			expiresIn: "15m",
+		});
+
+		const verificationLink = `http://localhost:${process.env.PORT}/api/auth/verify?token=${token}`;
+
+		await sendVerificationEmail(email, username, verificationLink);
+		return res.status(200).json({ message: "Verification email sent" });
 	} catch (error) {
 		res.status(500).json({ message: error.message });
 	}
 };
+
+//@desc Verify the email and create user
+//@route GET /api/auth/verify?token=${token}
+//@access Public
+const verifyEmail = async(req, res) => {
+	const token = req.query.token;
+	if(!token){
+		return res.status(400).json({"message": "no token provided"});
+	}
+	try{
+		const payload = jwt.verify(token, process.env.EMAIL_TOKEN_SECRET);
+		const newUser = User.create({
+			username: payload.username,
+			email: payload.email,
+			password: payload.password,
+		})
+
+		return res.status(200).json({message: "account created"});
+	} catch(err){
+		console.log(err);
+		return res.status(400).json({message: "invalid or expired token"});
+	}
+}
 
 // @desc Login a user
 // @route POST /api/auth/login
@@ -137,4 +166,5 @@ module.exports = {
 	logoutUser,
 	getProfile,
 	googleCallback,
+	verifyEmail
 };
