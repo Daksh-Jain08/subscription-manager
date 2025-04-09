@@ -1,5 +1,10 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const {
+	sendVerificationEmail,
+	sendPasswordResetEmail,
+	sendWelcomeEmail,
+} = require("../services/mailer/emailService.js");
 
 const generateToken = (id) => {
 	access_token = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -30,12 +35,42 @@ const registerUser = async (req, res) => {
 		if (usernameUsed) {
 			return res.status(400).json({ message: "Username already used" });
 		}
-		const user = await User.create({ username, email, password });
-		if (user) {
-			return loginUser(req, res);
-		}
+		const payload = { username, email, password }; // optionally hash the password here already
+		const token = jwt.sign(payload, process.env.EMAIL_TOKEN_SECRET, {
+			expiresIn: "15m",
+		});
+
+		const verificationLink = `http://localhost:${process.env.PORT}/api/auth/verify?token=${token}`;
+
+		sendVerificationEmail(email, username, verificationLink);
+		return res.status(200).json({ message: "Verification email sent" });
 	} catch (error) {
 		res.status(500).json({ message: error.message });
+	}
+};
+
+//@desc Verify the email and create user
+//@route GET /api/auth/verify?token=${token}
+//@access Public
+const verifyEmail = async (req, res) => {
+	const token = req.query.token;
+	if (!token) {
+		return res.status(400).json({ message: "no token provided" });
+	}
+	try {
+		const payload = jwt.verify(token, process.env.EMAIL_TOKEN_SECRET);
+		const newUser = User.create({
+			username: payload.username,
+			email: payload.email,
+			password: payload.password,
+		});
+
+		await sendWelcomeEmail(payload.email, payload.username);
+
+		return res.status(200).json({ message: "account created" });
+	} catch (err) {
+		console.log(err);
+		return res.status(400).json({ message: `${err} something went wrong` });
 	}
 };
 
@@ -130,6 +165,50 @@ const getProfile = async (req, res) => {
 	res.status(200).json(req.user);
 };
 
+//@desc Get Reset Password Link
+//@route /api/auth/reset-passowrd-link
+//@access public
+const resetPasswordLink = (req, res) => {
+	try {
+		const { email, username } = req.body;
+		if (!email || !username) {
+			return res
+				.status(400)
+				.json({ message: "Email or/and Username not provided" });
+		}
+		const user = User.findOne({ email: email, username: username });
+		if (!user) return res.status(400).json({ message: "User does not exist" });
+		const token = jwt.sign({ id: user._id }, process.env.EMAIL_TOKEN_SECRET, {
+			expiresIn: "15m",
+		});
+		const resetLink = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
+		sendPasswordResetEmail(email, username, resetLink);
+		return res.status(200).json({ message: "Reset Link sent" });
+	} catch (err) {
+		return res.status(500).json({ message: `${err} something went wrong` });
+	}
+};
+
+//@desc Reset Password
+//@route /api/auth/reset-passowrd
+//@access public
+const resetPassword = async (req, res) => {
+	try {
+		const token = req.query.token;
+
+		const id = jwt.verify(token, process.env.EMAIL_TOKEN_SECRET).id;
+
+		const newPassword = req.body.password;
+		const user = await User.findOne({ id: id });
+		if (!user) return res.status(400).json({ message: "User does not exist" });
+		user.password = newPassword;
+		await user.save();
+		return res.status(200).json({ message: "Password updated successfully" });
+	} catch (err) {
+		res.status(500).json({ message: `${err}` });
+	}
+};
+
 module.exports = {
 	registerUser,
 	loginUser,
@@ -137,4 +216,7 @@ module.exports = {
 	logoutUser,
 	getProfile,
 	googleCallback,
+	verifyEmail,
+	resetPasswordLink,
+	resetPassword,
 };
