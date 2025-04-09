@@ -1,46 +1,38 @@
-const dotenv = require("dotenv");
-
 const express = require("express");
-const envFile = process.env.ENV_MODE === "docker" ? ".env" : ".env.dev";
-console.log(envFile);
-dotenv.config({ path: envFile });
-const connectDB = require("./config/db");
+require("dotenv").config({path: '../.env'});
+const connectDB = require("./config/db")
 const cookieParser = require("cookie-parser");
-const passport = require("passport");
-const session = require("express-session");
+passport = require("passport");
+session = require("express-session");
+//require("./services/reminder");
 require("./config/passport");
 
-const startServer = async () => {
-	await connectDB(); // wait for DB to connect
 
-	const app = express();
+const app = express();
 
-	app.use(express.json());
-	app.use(cookieParser());
-	app.use(
-		session({
-			secret: process.env.SESSION_SECRET,
-			resave: false,
-			saveUninitialized: true,
-		}),
-	);
-	app.use(passport.initialize());
-	// app.use(passport.session());
+connectDB();
 
-	const authRouter = require("./routes/authRoutes");
-	const taskRouter = require("./routes/taskRoutes");
+app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true
+}));
+app.use(passport.initialize());
+//app.use(passport.session());
 
-	app.use("/api/auth", authRouter);
-	app.use("/api/tasks", taskRouter);
+const authRouter = require("./routes/authRoutes");
+const taskRouter = require("./routes/taskRoutes");
 
-	app.get("/", (req, res) => {
-		res.send(`<a href="api/auth/google">Login with Google</a>`);
-	});
+app.use("/api/auth", authRouter);
+app.use("/api/tasks", taskRouter);
 
-	const PORT = process.env.PORT;
-	app.listen(PORT, () => {
-		console.log(`Server running at http://localhost:${PORT}`);
-	});
-};
+app.get("/", (req, res) => {
+  res.send(`<a href="api/auth/google">Login with Google</a>`);
+});
 
-startServer(); // kick off the app
+const PORT = process.env.PORT;
+app.listen(PORT, () => {
+  console.log(`App is listening at ${PORT}`);
+});
