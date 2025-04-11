@@ -1,0 +1,31 @@
+version: '3.8'
+ 
+services:
+  backend:
+    build: .
+    container_name: taskmanager-backend
+    ports:
+      - "5000:5000"
+    restart: always
+    env_file:
+      - .env
+      #- NODE_ENV=development
+    depends_on:
+      - mongo
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+ 
+  mongo:
+    image: mongo:6
+    container_name: taskmanager-db
+    restart: unless-stopped
+    ports:
+      - "27016:27017"
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo/init-replica.js:/docker-entrypoint-initdb.d/init-replica.js:ro
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+
+volumes:
+  mongo-data:
