@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: ./auth-service
+    env_file:
+      ./auth-service/.env
+    container_name: auth-service
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  mail-service:
+    build:
+      context: ./mail-service
+    container_name: mail-service
+    env_file:
+      ./mail-service/.env
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+
+  queue-service:
+    build:
+      context: ./queue-service
+    env_file:
+      ./queue-service/.env
+    container_name: queue-service
+    ports:
+      - "5002:5002"
+    restart: unless-stopped

@@ -1,4 +1,5 @@
 const { loadTemplate, sendEmail } = require("../mailer.js");
+const axios = require("axios");
 
 const mail = (type, data) => {
 	console.log(type);
@@ -7,11 +8,7 @@ const mail = (type, data) => {
 			return sendwelcomeemail(data.email, data.username);
 
 		case "verify":
-			return sendverificationemail(
-				data.email,
-				data.username,
-				data.link,
-			);
+			return sendverificationemail(data.email, data.username, data.link);
 
 		case "reset":
 			return sendpasswordresetemail(data.email, data.username, data.link);
@@ -58,4 +55,16 @@ const sendreminderemail = async (email, username, task) => {
 	await sendEmail(email, "task reminder", html);
 };
 
-module.exports = mail;
+const consumeMails = () => {
+	setInterval(async () => {
+		try {
+			const res = await axios.get(`${process.env.QUEUE_URL}/dequeue/sendMail`);
+			const message = res.data.message;
+			await mail(message.type, message.data);
+		} catch (err) {
+			console.error("Queue polling error:", err.message);
+		}
+	}, 2000); // poll every 2 seconds
+};
+
+module.exports = { consumeMails };

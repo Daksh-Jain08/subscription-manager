@@ -13,8 +13,8 @@ RUN npm install --production
 # Copy the rest of the code
 COPY . .
 
-# Expose the port (default 4000, defined in .env)
-EXPOSE 4000
+# Expose the port (default 5001, defined in .env)
+EXPOSE 5001
 
 # Start the app
-CMD ["node", "index.js"]
+CMD ["npm", "start"]

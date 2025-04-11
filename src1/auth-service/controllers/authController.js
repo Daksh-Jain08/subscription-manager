@@ -41,7 +41,7 @@ const registerUser = async (req, res) => {
 		const verificationLink = `http://localhost:${process.env.PORT}/api/auth/verify?token=${token}`;
 		console.log(verificationLink);
 
-		await sendMail("verify", { email, username, link: verificationLink });
+		await sendMail("sendMail", "verify", { email, username, link: verificationLink });
 		return res.status(200).json({ message: "Verification email sent" });
 	} catch (error) {
 		console.log(`Error registering user: ${error}`);
@@ -68,7 +68,7 @@ const verifyEmail = async (req, res) => {
 			password: password,
 		});
 
-		await sendMail("welcome", { email, username });
+		await sendMail("sendMail", "welcome", { email, username });
 
 		return res.status(200).json({ message: "account created" });
 	} catch (err) {
@@ -190,7 +190,7 @@ const resetPasswordLink = async (req, res) => {
 		});
 
 		const resetLink = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
-		await sendMail("reset", { email, username, link: resetLink });
+		await sendMail("sendMail", "reset", { email, username, link: resetLink });
 
 		return res.status(200).json({ message: "Reset Link sent" });
 	} catch (err) {
