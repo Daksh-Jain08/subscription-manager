@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+//const User = require('../models/User');
+const prisma = require('../prisma');
+const userSelect = require("../utils/userSelect");
 
 const isAuthenticated = async (req, res, next) => {
     let token;
@@ -13,10 +15,16 @@ const isAuthenticated = async (req, res, next) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
             // Fetch user data without password
-            req.user = await User.findById(decoded.id).select('-password');
+            req.user = await prisma.user.findUnique({
+                where: {
+                    id: decoded.id,
+                },
+								select: userSelect
+            });
 
             next(); // Proceed to the next middleware/controller
         } catch (error) {
+						console.log(error);
             return res.status(401).json({ message: 'Not authorized, invalid token' });
         }
     } else {

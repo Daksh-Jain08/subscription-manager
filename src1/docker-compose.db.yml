@@ -1,0 +1,18 @@
+services:
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    restart: always
+    environment:
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: authpass
+      POSTGRES_DB: authdb
+    ports:
+      - 5432:5432
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+    #networks:
+      #- authnet
+
+volumes:
+  auth_data:

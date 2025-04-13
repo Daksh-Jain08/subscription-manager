@@ -1,7 +1,7 @@
 const express = require("express");
 const passport = require("passport");
 const dotenv = require("dotenv");
-const connectDB = require("./config/db");
+//const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 
 dotenv.config();
@@ -16,7 +16,6 @@ app.use(express.json());
 // MongoDB Connection
 const startApp = async () => {
 	try {
-		await connectDB();
 		app.use(express.json());
 		app.use(cookieParser());
 		app.use(

@@ -1,5 +1,7 @@
-const User = require("../models/User");
+//const User = require("../models/User");
+const prisma = require("../prisma");
 const jwt = require("jsonwebtoken");
+const { matchPassword } = require("../utils/user");
 //sendMail can throw errors
 const { sendMail } = require("../services/sendMail");
 
@@ -24,8 +26,8 @@ const registerUser = async (req, res) => {
 	}
 
 	try {
-		const emailUsed = await User.findOne({ email });
-		const usernameUsed = await User.findOne({ username });
+		const emailUsed = await prisma.user.findUnique({ where: {email} });
+		const usernameUsed = await prisma.user.findUnique({ where: {username} });
 		if (emailUsed) {
 			return res.status(400).json({ message: "Email already used" });
 		}
@@ -62,11 +64,13 @@ const verifyEmail = async (req, res) => {
 			token,
 			process.env.EMAIL_TOKEN_SECRET,
 		);
-		const newUser = User.create({
-			username: username,
-			email: email,
-			password: password,
-		});
+		const newUser = await prisma.user.create({
+			data: {
+				username: username,
+				email: email,
+				password: password,
+			}
+		})
 
 		await sendMail("sendMail", "welcome", { email, username });
 
@@ -88,15 +92,18 @@ const loginUser = async (req, res) => {
 			.json({ message: "Please enter all the fields {email, password}" });
 	}
 	try {
-		const user = await User.findOne({ email });
+		const user = await prisma.user.findUnique({
+			where: { email },
+		});
 		if (!user) {
 			return res.status(400).json({ message: "User not found" });
 		}
-		const isMatch = await user.matchPassword(password);
+		// To be added in prisma user model
+		const isMatch = await matchPassword(password, user.password);
 		if (!isMatch) {
 			return res.status(400).json({ message: "Invalid credentials" });
 		}
-		const { access_token, refresh_token } = generateToken(user._id);
+		const { access_token, refresh_token } = generateToken(user.id);
 		res.cookie("refresh_token", refresh_token, {
 			http_only: true,
 			secure: true,
@@ -155,7 +162,7 @@ const logoutUser = (req, res) => {
 //@route selfcalled
 //@access Private
 const googleCallback = (req, res) => {
-	const { access_token, refresh_token } = generateToken(req.user._id);
+	const { access_token, refresh_token } = generateToken(req.user.id);
 	res.cookie("refresh_token", refresh_token, {
 		httpOnly: true,
 		secure: true,
@@ -179,13 +186,15 @@ const resetPasswordLink = async (req, res) => {
 				.status(400)
 				.json({ message: "Email or/and Username not provided" });
 		}
-		const user = User.findOne({ email: email, username: username });
+		const user = await prisma.user.findUnique({
+			where: { email: email, username: username },
+		});
 
 		if (!user) {
 			return res.status(400).json({ message: "User does not exist" });
 		}
 
-		const token = jwt.sign({ id: user._id }, process.env.EMAIL_TOKEN_SECRET, {
+		const token = jwt.sign({ id: user.id }, process.env.EMAIL_TOKEN_SECRET, {
 			expiresIn: "15m",
 		});
 
@@ -206,12 +215,17 @@ const resetPassword = async (req, res) => {
 		const token = req.query.token;
 
 		const id = jwt.verify(token, process.env.EMAIL_TOKEN_SECRET).id;
-
+		console.log(id);
 		const newPassword = req.body.password;
-		const user = await User.findOne({ id: id });
+		const user = await prisma.user.findUnique({ where: { id: id } });
 		if (!user) return res.status(400).json({ message: "User does not exist" });
-		user.password = newPassword;
-		await user.save();
+		await prisma.user.update({
+			where: {id: id},
+			data: {
+				password: newPassword,
+			}
+		});
+		console.log(user.password);
 		return res.status(200).json({ message: "Password updated successfully" });
 	} catch (err) {
 		res.status(500).json({ message: `${err}` });
