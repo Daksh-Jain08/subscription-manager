@@ -10,11 +10,26 @@ services:
       POSTGRES_PASSWORD: authpass
       POSTGRES_DB: authdb
     ports:
-      - 5432:5432
+      - 5433:5432
     volumes:
       - auth_data:/var/lib/postgresql/data
     networks:
       - authnet
+
+  subs-db:
+    image: postgres:15
+    container_name: subs-db
+    restart: always
+    environment:
+      POSTGRES_USER: subsuser
+      POSTGRES_PASSWORD: subspass
+      POSTGRES_DB: subsdb
+    ports:
+      - 5434:5432
+    volumes:
+      - subs_data:/var/lib/postgresql/data
+    networks:
+      - subsnet
 
   auth-service:
     build:
@@ -31,6 +46,22 @@ services:
       - queuenet
     volumes:
       - ./auth-service:/usr/src/app
+
+  subs-service:
+    build:
+      context: ./subs-service
+    env_file: ./subs-service/.env
+    container_name: subs-service
+    ports:
+      - "5003:5003"
+    restart: unless-stopped
+    depends_on:
+      - subs-db
+    networks:
+      - subsnet
+      - queuenet
+    volumes:
+      - ./subs-service:/usr/src/app
 
   mail-service:
     build:
@@ -57,8 +88,10 @@ services:
 
 volumes:
   auth_data:
+  subs_data:
 
 networks:
   authnet:
   mailnet:
   queuenet:
+  subsnet:

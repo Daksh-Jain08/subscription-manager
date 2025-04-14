@@ -14,7 +14,7 @@ RUN npm install --production
 COPY . .
 
 # Expose the port (default 5001, defined in .env)
-EXPOSE 5001
+EXPOSE ${PORT}
 
 # Start the app
 CMD ["npm", "start"]

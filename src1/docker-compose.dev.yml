@@ -9,10 +9,22 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: dev_authdb
     ports:
-      - "5433:5432"
+      - "5455:5432"
     volumes:
       - dev-auth-db-data:/var/lib/postgresql/data
 
+  dev-subs-db:
+    image: postgres:15
+    container_name: dev-subs-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dev_subsdb
+    ports:
+      - "5454:5432"
+    volumes:
+      - dev-subs-db-data:/var/lib/postgresql/data
 volumes:
   dev-auth-db-data:
+  dev-subs-db-data:
 

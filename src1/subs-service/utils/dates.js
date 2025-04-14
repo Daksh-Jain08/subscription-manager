@@ -1,5 +1,4 @@
 const { DateTime } = require("luxon");
-const Task = require("../models/Task");
 
 /* Function to validate the datetime format.
    Returns a JavaScript Date object in UTC.
@@ -40,29 +39,24 @@ const validateDatetime = (datetime) => {
 /* Helper to transform task timestamps to IST (GMT+5:30)
    This converts deadline, reminderTime, createdAt, and updatedAt.
 */
-const transformTaskToIST = (task) => {
+const transformSubToIST = (sub) => {
   // Convert to plain object (if Mongoose document)
-  const taskObj = task.toObject ? task.toObject() : task;
-  if (taskObj.deadline)
-    taskObj.deadline = DateTime.fromJSDate(taskObj.deadline)
+  if (sub.renewalDate)
+    sub.renewalDate = DateTime.fromJSDate(sub.renewalDate)
       .setZone("Asia/Kolkata")
       .toISO();
-  if (taskObj.reminderTime)
-    taskObj.reminderTime = DateTime.fromJSDate(taskObj.reminderTime)
+  if (sub.createdAt)
+    sub.createdAt = DateTime.fromJSDate(sub.createdAt)
       .setZone("Asia/Kolkata")
       .toISO();
-  if (taskObj.createdAt)
-    taskObj.createdAt = DateTime.fromJSDate(taskObj.createdAt)
+  if (sub.updatedAt)
+    sub.updatedAt = DateTime.fromJSDate(sub.updatedAt)
       .setZone("Asia/Kolkata")
       .toISO();
-  if (taskObj.updatedAt)
-    taskObj.updatedAt = DateTime.fromJSDate(taskObj.updatedAt)
-      .setZone("Asia/Kolkata")
-      .toISO();
-  return taskObj;
+  return sub;
 };
 
 module.exports = {
   validateDatetime,
-  transformTaskToIST,
+  transformSubToIST,
 };
