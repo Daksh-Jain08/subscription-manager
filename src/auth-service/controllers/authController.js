@@ -27,12 +27,8 @@ const registerUser = async (req, res) => {
 
 	try {
 		const emailUsed = await prisma.user.findUnique({ where: {email} });
-		const usernameUsed = await prisma.user.findUnique({ where: {username} });
 		if (emailUsed) {
 			return res.status(400).json({ message: "Email already used" });
-		}
-		if (usernameUsed) {
-			return res.status(400).json({ message: "Username already used" });
 		}
 		const payload = { username, email, password };
 		const token = jwt.sign(payload, process.env.EMAIL_TOKEN_SECRET, {
@@ -69,6 +65,12 @@ const verifyEmail = async (req, res) => {
 				username: username,
 				email: email,
 				password: password,
+			}
+		})
+
+		const newReminderSetting = await prisma.reminderSetting.create({
+			data: {
+				userId: newUser.id,
 			}
 		})
 

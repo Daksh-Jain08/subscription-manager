@@ -31,6 +31,21 @@ services:
     networks:
       - subsnet
 
+  reminder-db:
+    image: postgres:15
+    container_name: reminder-db
+    restart: always
+    environment:
+      POSTGRES_USER: reminderuser
+      POSTGRES_PASSWORD: reminderpass
+      POSTGRES_DB: reminderdb
+    ports:
+      - 5435:5432
+    volumes:
+      - reminder_data:/var/lib/postgresql/data
+    networks:
+      - remindernet
+
   auth-service:
     build:
       context: ./auth-service
@@ -38,6 +53,7 @@ services:
     container_name: auth-service
     ports:
       - "5000:5000"
+      - "5555:5555"
     restart: unless-stopped
     depends_on:
       - auth-db
@@ -54,6 +70,7 @@ services:
     container_name: subs-service
     ports:
       - "5003:5003"
+      - "5556:5555"
     restart: unless-stopped
     depends_on:
       - subs-db
@@ -86,12 +103,31 @@ services:
       - queuenet
       - mailnet
 
+  reminder-service:
+    build:
+      context: ./reminder-service
+    env_file: ./reminder-service/.env
+    container_name: reminder-service
+    ports:
+      - "5004:5004"
+      - "5557:5555"
+    restart: always
+    depends_on:
+      - reminder-db
+    volumes:
+      - ./reminder-service:/usr/src/app
+    networks:
+      - queuenet
+      - remindernet
+
 volumes:
   auth_data:
   subs_data:
+  reminder_data:
 
 networks:
   authnet:
   mailnet:
   queuenet:
   subsnet:
+  remindernet:

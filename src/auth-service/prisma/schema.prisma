@@ -21,5 +21,14 @@ model User {
 	googleId String? @unique
 	createdAt DateTime @default(now())
 	updatedAt DateTime @updatedAt
+	reminderSettings ReminderSetting?
 }
 
+model ReminderSetting {
+	id String @id @default(uuid())
+	userId String @unique
+	reminderOffset Int @default(3)
+	enabled Boolean @default(true)
+
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
