@@ -1,9 +1,10 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const {prisma} = require("./prisma");
 const reminderRoutes = require("./routes/reminderRoutes");
 const { isAuthenticated } = require('./middleware/authMiddleware');
 const { startPolling } = require("./utils/remind");
+const reminderGrpcServer = require('./grpcServer');
+
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ const startApp = async () => {
         app.listen(PORT, () => {
             console.log(`Reminder Service listening on port ${PORT}`);
         });
+        reminderGrpcServer.start();
     } catch (err) {
         console.log(`Something went wrong:\n${err}`);
     }

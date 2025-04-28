@@ -1,7 +1,7 @@
 const prisma = require("../prisma");
 const jwt = require("jsonwebtoken");
 //const { sendMail } = require("../services/sendMail");
-const { validateDatetime, transformSubToIST } = require("../utils/dates");
+const { validateDatetime } = require("../utils/dates");
 
 const getAllSubscriptions = async (req, res) => {
 	try {
@@ -33,7 +33,7 @@ const createSubscription = async (req, res) => {
 		const sub = await prisma.subscription.create({
 			data: data,
 		});
-		res.status(201).json({ sub: transformSubToIST(sub) });
+		res.status(201).json({ sub });
 	} catch (err) {
 		console.log(err);
 		res.status(500).json({ message: "INTERNAL SERVER ERROR" });
@@ -54,7 +54,7 @@ const getSubscription = async (req, res) => {
 				.json({ message: "Not authorized to access the resource" });
 		}
 
-		return res.status(200).json({ sub: transformSubToIST(sub) });
+		return res.status(200).json({ sub });
 	} catch (err) {
 		console.log(err);
 		res.status(500).json({ message: "INTERNAL SERVER ERROR" });
@@ -87,7 +87,7 @@ const updateSubscription = async (req, res) => {
 		});
 		res.status(200).json({
 			message: "Subscription updated",
-			sub: transformSubToIST(updatedSubs),
+			sub,
 		});
 	} catch (err) {
 		console.log(err);

@@ -21,6 +21,7 @@ RUN chmod +x ./entrypoint.sh
 
 # Expose port
 EXPOSE ${PORT}
+EXPOSE 50051
 
 RUN npx prisma generate
 CMD ["sh", "./entrypoint.sh"]

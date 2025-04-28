@@ -16,10 +16,12 @@ datasource db {
 model Reminder {
   id String @id @default(uuid())
   userId String
+  subscriptionId String
   title String
   description String?
-  date DateTime
-  snoozeTime DateTime?
+  reminderTime DateTime
+  snoozeUntil DateTime?
+  enabled Boolean @default(true)
   sent Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

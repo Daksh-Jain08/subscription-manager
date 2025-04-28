@@ -13,13 +13,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+}
+
 model Subscription {
   id           String   @id @default(uuid())
   userId       String
   serviceName  String
   price        Float
   renewalDate  DateTime
-	deleted      Boolean  @default(false)
+  reminderOffset Int?
+  reminderOn Boolean @default(true)
+  status SubscriptionStatus @default(ACTIVE)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

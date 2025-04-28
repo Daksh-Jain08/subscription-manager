@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package reminder;
+
+service ReminderService {
+    rpc CreateReminder (CreateReminderRequest) returns (Reminder);
+    rpc UpdateReminder (UpdateReminderRequest) returns (Reminder);
+    rpc DeleteReminder (DeleteReminderRequest) returns (Reminder);
+    rpc UpdateReminderSettings (UpdateSettingsRequest) returns (Response);
+    rpc GetAllReminders (void) returns (Reminders)
+}
+
+message void {}
+
+message Reminder {
+    string reminderId = 1;
+    string userId = 2;
+    string subscriptionId = 3;
+    string title = 4;
+    string description = 5;
+    string reminderTime = 6;
+    string snoozeTime = 7;
+    boolean enabled = 8;
+}
+
+message CreateReminderRequest {
+    string userId = 1;
+    string subscriptionId = 2;
+    string title = 3;
+    string description = 4;
+    string reminderTime = 5;
+}
+
+message UpdateReminderRequest {
+    string reminderId = 1;
+    string title = 2;
+    string description = 3;
+    string reminderTime = 4;
+}
+
+message deleteReminderRequest {
+    string reminderId = 1;
+}
+
+message updateSettingsRequest {
+    string userId = 1;
+    string reminderOffset = 2;
+    string enabled = 3;
+}
+
+message Reminder {
+    bool success = 1;
+    Reminder reminder = 2;
+}
+
+message Reminders {
+    repeated Reminder
+}
+
+message Response {
+    bool success = 1;
+    string message = 2;
+}
