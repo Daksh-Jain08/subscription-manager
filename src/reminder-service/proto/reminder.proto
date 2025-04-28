@@ -1,4 +1,4 @@
-syntax = "proto3"
+syntax = "proto3";
 
 package reminder;
 
@@ -7,7 +7,7 @@ service ReminderService {
     rpc UpdateReminder (UpdateReminderRequest) returns (Reminder);
     rpc DeleteReminder (DeleteReminderRequest) returns (Reminder);
     rpc UpdateReminderSettings (UpdateSettingsRequest) returns (Response);
-    rpc GetAllReminders (void) returns (Reminders)
+    rpc GetAllReminders (void) returns (Reminders);
 }
 
 service NotificationService {
@@ -24,7 +24,7 @@ message Reminder {
     string description = 5;
     string reminderTime = 6;
     optional string snoozeUntil = 7;
-    boolean enabled = 8;
+    bool enabled = 8;
 }
 
 message CreateReminderRequest {
@@ -40,25 +40,21 @@ message UpdateReminderRequest {
     string title = 2;
     string description = 3;
     string reminderTime = 4;
+    string snoozeUntil = 5;
 }
 
-message deleteReminderRequest {
+message DeleteReminderRequest {
     string reminderId = 1;
 }
 
-message updateSettingsRequest {
+message UpdateSettingsRequest {
     string userId = 1;
     string reminderOffset = 2;
     string enabled = 3;
 }
 
-message Reminder {
-    bool success = 1;
-    Reminder reminder = 2;
-}
-
 message Reminders {
-    repeated Reminder
+    repeated Reminder reminders= 1;
 }
 
 message Response {

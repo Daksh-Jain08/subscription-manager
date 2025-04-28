@@ -62,9 +62,9 @@ const consumeMails = () => {
 			const message = res.data.message;
 			await mail(message.type, message.data);
 		} catch (err) {
-			console.error("Queue polling error:", err.message);
+			console.error("Queue polling error :", err.message);
 		}
-	}, 2000); // poll every 2 seconds
+	}, 60000); // poll every 1 minute
 };
 
 module.exports = { consumeMails };

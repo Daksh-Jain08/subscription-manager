@@ -7,18 +7,28 @@ const reminderGrpcController = {
     try {
       const { userId, subscriptionId, title, description, reminderTime } = call.request;
 
-      console.log(call.request)
       const reminder = await prisma.reminder.create({
         data: {
           userId,
           subscriptionId,
           title,
           description,
-          date: new Date(reminderTime),
+          reminderTime: new Date(reminderTime),
         },
       });
 
-      callback(null, { success: true, reminderId: reminder.id });
+      const response = {
+        reminderId: reminder.id,
+        userId: reminder.userId,
+        subscriptionId: reminder.subscriptionId,
+        title: reminder.title,
+        description: reminder.description,
+        reminderTime: reminder.reminderTime.toISOString(),
+        snoozeUntil: reminder.snoozeUntil ? reminder.snoozeUntil.toISOString() : null,
+        enabled: reminder.enabled,
+      }
+
+      callback(null, response);
     } catch (error) {
       console.error('gRPC CreateReminder error:', error);
       callback(grpc.status.INTERNAL, null);
@@ -27,11 +37,11 @@ const reminderGrpcController = {
 
   UpdateReminder: async (call, callback) => {
     try {
-        const { id, title, description, date, snoozeTime } = call.request;
+        const { id, title, description, date, snoozeUntil } = call.request;
         const userId = call.request.userId;
         const reminder = await prisma.reminder.updateMany({
             where: { id, userId },
-            data: { title, description, date: date ? new Date(date) : undefined, snoozeTime },
+            data: { title, description, date: date ? new Date(date) : undefined, snoozeUntil: snoozeUntil ? new Date(snoozeUntil) : undefined }
         })
         if (reminder.count === 0) {
             return callback({

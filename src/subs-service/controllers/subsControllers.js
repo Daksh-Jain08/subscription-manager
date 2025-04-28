@@ -2,17 +2,25 @@ const prisma = require("../prisma");
 const jwt = require("jsonwebtoken");
 //const { sendMail } = require("../services/sendMail");
 const { validateDatetime } = require("../utils/dates");
+const { reminderClient } = require("../reminderClient")
 
 const getAllSubscriptions = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		const subs = await prisma.subscription.findMany({
 			where: { userId: userId },
+			select: {
+				id: true,
+				serviceName: true,
+				price: true,
+				renewalDate: true,
+				status: true,
+			}
 		});
-		const transformedSubs = subs.map((sub) => {
-			return transformSubToIST(sub);
-		});
-		res.status(200).json({ subs: transformedSubs });
+		const reminders = axios.get(
+			`${process.env.REMINDER_SERVICE_URL}/api/reminders?userId=${userId}`
+		);
+		res.status(200).json({ subs });
 	} catch (err) {
 		console.log(err);
 		res.status(500).json({ message: "INTERNAL SERVER ERROR" });
@@ -32,6 +40,18 @@ const createSubscription = async (req, res) => {
 		data.renewalDate = validateDatetime(data.renewalDate);
 		const sub = await prisma.subscription.create({
 			data: data,
+		});
+		reminderClient.CreateReminder({
+			userId,
+			subscriptionId: sub.id,
+			title: `Subscription Reminder for ${sub.serviceName}`,
+			description: `Your subscription for ${sub.serviceName} is due on ${sub.renewalDate}`,
+          	reminderTime: new Date(new Date(sub.renewalDate).getTime() - ( 3 * 24 * 60 * 60 * 1000)).toISOString(), // 3 days before by default
+		}, (err, response) => {
+			if (err) {
+				console.error("Error creating reminder:", err);
+			}
+			console.log("Reminder created successfully:", response);
 		});
 		res.status(201).json({ sub });
 	} catch (err) {

@@ -17,7 +17,7 @@ const startApp = async () => {
             res.send("Reminder Service is running");
         });
 
-        app.use("/api/reminder", reminderRoutes);
+        app.use("/api/reminder", isAuthenticated, reminderRoutes);
         const PORT = process.env.PORT || 5004;
         startPolling();
         app.listen(PORT, () => {

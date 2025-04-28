@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 5002;
 
 // Enqueue a message
 app.post("/enqueue/:queueName", (req, res) => {
+	console.log("Enqueueing message");
 	const { queueName } = req.params;
 	const message = req.body;
 
