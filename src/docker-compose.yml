@@ -89,6 +89,8 @@ services:
     ports:
       - "5001:5001"
     restart: unless-stopped
+    volumes:
+      - ./mail-service:/usr/src/app
     networks:
       - mailnet
 
@@ -121,6 +123,8 @@ services:
     networks:
       - queuenet
       - remindernet
+      - authnet
+      - subsnet
 
 volumes:
   auth_data:

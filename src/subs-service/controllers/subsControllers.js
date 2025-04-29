@@ -17,9 +17,6 @@ const getAllSubscriptions = async (req, res) => {
 				status: true,
 			}
 		});
-		const reminders = axios.get(
-			`${process.env.REMINDER_SERVICE_URL}/api/reminders?userId=${userId}`
-		);
 		res.status(200).json({ subs });
 	} catch (err) {
 		console.log(err);
@@ -41,18 +38,6 @@ const createSubscription = async (req, res) => {
 		const sub = await prisma.subscription.create({
 			data: data,
 		});
-		reminderClient.CreateReminder({
-			userId,
-			subscriptionId: sub.id,
-			title: `Subscription Reminder for ${sub.serviceName}`,
-			description: `Your subscription for ${sub.serviceName} is due on ${sub.renewalDate}`,
-          	reminderTime: new Date(new Date(sub.renewalDate).getTime() - ( 3 * 24 * 60 * 60 * 1000)).toISOString(), // 3 days before by default
-		}, (err, response) => {
-			if (err) {
-				console.error("Error creating reminder:", err);
-			}
-			console.log("Reminder created successfully:", response);
-		});
 		res.status(201).json({ sub });
 	} catch (err) {
 		console.log(err);
@@ -62,17 +47,17 @@ const createSubscription = async (req, res) => {
 
 const getSubscription = async (req, res) => {
 	try {
-		const userId = req.user.id;
+		//const userId = req.user.id;
 		const id = req.params.id;
 		const sub = await prisma.subscription.findUnique({ where: { id: id } });
 		if (!sub) {
 			res.status(404).json({ message: "Subscription not found" });
 		}
-		if (sub.userId !== userId) {
-			res
-				.status(403)
-				.json({ message: "Not authorized to access the resource" });
-		}
+		// if (sub.userId !== userId) {
+		// 	res
+		// 		.status(403)
+		// 		.json({ message: "Not authorized to access the resource" });
+		// }
 
 		return res.status(200).json({ sub });
 	} catch (err) {
@@ -115,10 +100,36 @@ const updateSubscription = async (req, res) => {
 	}
 };
 
+
 const deleteSubscription = async (req, res) => {
-	return res
-		.status(200)
-		.json({ message: `Delete subscription with id: ${req.params.id}` });
+	const id = req.params.id;
+	const userId = req.user.id;
+	try {
+		const sub = await prisma.subscription.findUnique({ where: { id: id } });
+		if (!sub) {
+			return res.status(404).json({ message: "Subscription not found" });
+		}
+		if (sub.userId !== userId) {
+			return res
+				.status(403)
+				.json({ message: "Not authorized to delete this task" });
+		}
+		await prisma.subscription.delete({ where: { id: id } });
+		reminderClient.DeleteRemindersForSub(
+			{ subscriptionId: id },
+			(err, response) => {
+				if (err) {
+					console.error("Error deleting reminders:", err);
+				} else {
+					console.log("Reminders deleted successfully:", response);
+				}
+			}
+		)
+		res.status(200).json({ message: "Subscription deleted" });
+	} catch (err) {
+		console.log(err);
+		res.status(500).json({ message: "INTERNAL SERVER ERROR" });
+	}
 };
 
 module.exports = {

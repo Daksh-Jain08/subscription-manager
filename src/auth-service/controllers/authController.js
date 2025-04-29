@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { matchPassword } = require("../utils/user");
 //sendMail can throw errors
 const { sendMail } = require("../services/sendMail");
+const userSelect = require("../utils/userSelect");
 
 const generateToken = (id) => {
 	access_token = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -234,6 +235,22 @@ const resetPassword = async (req, res) => {
 	}
 };
 
+const getUserById = async(req, res) => {
+	try {
+		const id = req.params.userid;
+		const user = await prisma.user.findUnique({
+			where: { id: id },
+			select: userSelect,
+		});
+		if (!user) {
+			return res.status(400).json({ message: "User does not exist" });
+		}
+		return res.status(200).json({ user });
+	} catch (err) {
+		return res.status(500).json({ message: `${err} something went wrong` });
+	}
+}
+
 module.exports = {
 	registerUser,
 	loginUser,
@@ -244,4 +261,5 @@ module.exports = {
 	verifyEmail,
 	resetPasswordLink,
 	resetPassword,
+	getUserById
 };

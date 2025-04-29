@@ -14,7 +14,7 @@ const mail = (type, data) => {
 			return sendpasswordresetemail(data.email, data.username, data.link);
 
 		case "reminder":
-			return sendreminderemail(data.email, data.username, data.task);
+			return sendreminderemail(data.subject, data.email, data.username, data.sub);
 
 		default:
 			throw new Error(`unsupported mail type: ${type}`);
@@ -45,14 +45,20 @@ const sendpasswordresetemail = async (email, username, link) => {
 	await sendEmail(email, "reset your password", html);
 };
 
-const sendreminderemail = async (email, username, task) => {
+const sendreminderemail = async (subject, email, username, sub) => {
+	console.log("sending reminder email");
+	try{
 	const template = loadTemplate("reminder.html");
 	const html = template
 		.replace(/{{username}}/g, username)
-		.replace(/{{tasktitle}}/g, task.title)
-		.replace(/{{duedate}}/g, task.duedate);
+		.replace(/{{serviceName}}/g, sub.serviceName)
+		.replace(/{{renewalDate}}/g, sub.renewalDate);
 
-	await sendEmail(email, "task reminder", html);
+	await sendEmail(email, subject, html);
+	console.log(`Reminder email sent to ${email} for ${sub.serviceName}`);
+	} catch (error) {
+		console.error("Error sending reminder email:", error);
+	}
 };
 
 const consumeMails = () => {
@@ -62,9 +68,9 @@ const consumeMails = () => {
 			const message = res.data.message;
 			await mail(message.type, message.data);
 		} catch (err) {
-			console.error("Queue polling error :", err.message);
+			console.error("Queue polling error:", err.message);
 		}
-	}, 60000); // poll every 1 minute
+	}, 6000); // poll every 1 minute
 };
 
 module.exports = { consumeMails };

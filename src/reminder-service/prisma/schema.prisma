@@ -20,7 +20,6 @@ model Reminder {
   title String
   description String?
   reminderTime DateTime
-  snoozeUntil DateTime?
   enabled Boolean @default(true)
   sent Boolean @default(false)
   createdAt DateTime @default(now())

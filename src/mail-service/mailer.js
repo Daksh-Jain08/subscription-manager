@@ -19,6 +19,7 @@ const loadTemplate = (templateName) => {
 };
 
 const sendEmail = async (to, subject, html) => {
+	console.log("Sending email to:", to);
 	await transporter.sendMail({
 		from: `"Task Manager" <${process.env.MAIL_USER}>`,
 		to,

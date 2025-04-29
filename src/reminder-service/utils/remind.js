@@ -1,5 +1,6 @@
 const prisma = require("../prisma")
-const axios = require("axios");
+const { sendMail } = require("../utils/sendMail");
+const { getUser, getSubscription } = require("./getUser");
 
 const emailQueue = "sendMail";
 const notifQueue = "sendNotification";
@@ -33,9 +34,31 @@ async function sendReminder(reminder) {
     try {
         // Logic to send the reminder (e.g., email, SMS, etc.)
         console.log(`Sending reminder: ${reminder.title} - ${reminder.description}`);
-        const res = await axios.post(`${process.env.QUEUE_URL}/enqueue/${emailQueue}`, { reminder });
-        console.log(res);
-        await axios.post(`${process.env.QUEUE_URL}/enqueue/${notifQueue}`, { reminder });
+        const {user} = await getUser(reminder.userId);
+        console.log(user);
+        if (!user) {
+            console.log(`User not found for reminder: ${reminder.title}`);
+            return;
+        }
+        const {sub}= await getSubscription(reminder.subscriptionId);
+        console.log(sub);
+        if (!sub) {
+            console.log(`Subscription not found for reminder: ${reminder.title}`);
+            return;
+        }
+        const data = {
+            email: user.email,
+            username: user.username,
+            title: reminder.title,
+            description: reminder.description,
+            sub: {
+            serviceName: sub.serviceName,
+            renewalDate: sub.renewalDate,
+            }
+        }
+        console.log(data);
+        await sendMail(emailQueue, "reminder", data);
+        await markReminderAsSent(reminder.id);
     } catch (err) {
         console.log(`Error in sendReminder: ${err}`);
     }

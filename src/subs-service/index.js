@@ -21,7 +21,7 @@ const startApp = async () => {
 		});
 
 		// Routes
-		app.use("/api/subscription", isAuthenticated, subsRoutes);
+		app.use("/api/subscription", subsRoutes);
 
 		// Start Server
 		const PORT = process.env.PORT || 5003;

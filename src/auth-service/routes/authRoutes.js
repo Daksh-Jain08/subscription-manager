@@ -29,6 +29,7 @@ router.get(
 router.get("/verify", authControllers.verifyEmail);
 router.get("/get-reset-password-link", authControllers.resetPasswordLink);
 router.post("/reset-password", authControllers.resetPassword);
+router.get("/users/:userid", authControllers.getUserById);
 
 
 module.exports = router;

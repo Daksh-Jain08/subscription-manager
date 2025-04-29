@@ -1,5 +1,4 @@
 const prisma = require("../../prisma")
-const { validateDateTime } = require("../../utils/dates");
 
 const createReminder = async (req, res) => {
     try {
@@ -10,18 +9,13 @@ const createReminder = async (req, res) => {
         return res.status(400).json({ message: 'subscriptionId, title and date are required' });
       }
 
-      // Validate date format if necessary
-      if (!validateDateTime(date)) {
-        return res.status(400).json({ message: 'Invalid date format' });
-      }
-  
       const reminder = await prisma.reminder.create({
         data: {
           userId,
           subscriptionId,
           title,
           description,
-          date: new Date(date), // validate properly if needed
+          reminderTime: new Date(date), // validate properly if needed
         },
       });
   
@@ -49,8 +43,10 @@ const createReminder = async (req, res) => {
     try {
       const { id } = req.params;
       const { title, description, date, snoozeUntil } = req.body;
-      // validate date format if necessary
-      if (date && !validateDateTime(date)) {
+
+      try {
+        new Date(date);
+      } catch (error) {
         return res.status(400).json({ message: 'Invalid date format' });
       }
       const userId = req.user.id;

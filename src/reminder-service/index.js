@@ -13,11 +13,11 @@ const app = express();
 const startApp = async () => {
     try {
         app.use(express.json());
-        app.get("/", (req, res) => {
+        app.get("check/", (req, res) => {
             res.send("Reminder Service is running");
         });
 
-        app.use("/api/reminder", isAuthenticated, reminderRoutes);
+        app.use("/", isAuthenticated, reminderRoutes);
         const PORT = process.env.PORT || 5004;
         startPolling();
         app.listen(PORT, () => {

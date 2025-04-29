@@ -8,9 +8,14 @@ service ReminderService {
     rpc DeleteReminder (DeleteReminderRequest) returns (Reminder);
     rpc UpdateReminderSettings (UpdateSettingsRequest) returns (Response);
     rpc GetAllReminders (void) returns (Reminders);
+    rpc DeleteRemindersForSub (SubId) returns (Response);
 }
 
 message void {}
+
+message SubId {
+    string subId = 1;
+}
 
 message Reminder {
     string reminderId = 1;

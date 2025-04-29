@@ -98,6 +98,21 @@ const reminderGrpcController = {
         }
     },
 
+    DeleteRemindersForSub: async (call, callback) => {
+      try {
+        const { subscriptionId } = call.request;
+
+        await prisma.reminder.deleteMany({
+          where: { subscriptionId },
+        });
+
+        callback(null, { success: true, message: 'Reminders deleted' });
+      } catch (error) {
+        console.error('gRPC DeleteRemindersForSub error:', error);
+        callback(error, null);
+      }
+    },
+
   MarkReminderAsSent: async (call, callback) => {
     try {
       const { reminderId } = call.request;
